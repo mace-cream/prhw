@@ -1,7 +1,16 @@
 from utils import *
 import numpy as np
 import matplotlib.pyplot as plt
-def PCA_Gaussian_Bayes(K=None):
+def PCA_Gaussian_Bayes(K=None,IDEPENDENT_COMPONENT = False):
+    '''
+    Use PCA to reduce dimension, estimate data conditional distribution on a guassian model, then use Bayes Decision rule to give maximum posterior classification. MNIST is used.
+    Input: 
+        K: int, 0<K<=28*28, PCA rudection dimension.
+        IDEPENDENT_COMPONENT: bool, use independent component multi-variant guassian (i.e. multiplication of single-variant gaussian) when set to True.)
+    Return:
+        oa: float, Average accuracy.
+        ca: list of float, Class-wise accuracy.
+    '''
     # Load Data
     x_train, y_train, x_test, y_test = load_mnist()
     x_train = x_train/255.0
@@ -22,10 +31,10 @@ def PCA_Gaussian_Bayes(K=None):
     # Estimate Gaussian parameters for each class in K-dimensional space
     mu = []
     sigma_inv = []
-    IDEPENDENT_COMPONENT = False
     for i in range(10):
         N = x_train_new[y_train==i].shape[0]
         mu.append(np.sum(x_train_new[y_train==i],0)/N)
+        # We ignore the estimation bias of coviriance as dataset is large enough.
         if IDEPENDENT_COMPONENT:
             sigma_inv.append(np.identity(K)*np.linalg.inv(np.matmul((x_train_new[y_train==i]-mu[i]).T,(x_train_new[y_train==i]-mu[i]))/N))
         else:
@@ -46,20 +55,22 @@ def PCA_Gaussian_Bayes(K=None):
 
     return mean_accuracy,accuracy
 
-overall_accuracy = []
-class_accuracy = []
-for K in range(30):
-    oa, ca = PCA_Gaussian_Bayes(K)
-    overall_accuracy.append(oa)
-    class_accuracy.append(ca)
-plt.figure()
-for i in range(10):
-    plt.plot(np.linspace(1,30,30), np.array(class_accuracy)[:,i],'--')
-plt.plot(np.linspace(1,30,30), overall_accuracy, 'k')
-plt.legend(['Class '+str(i+1) for i in range(10)]+['Average'])
-plt.title('Accuracy-K')
-plt.xlabel('K')
-plt.ylabel('Accuracy')
-plt.savefig("1.jpg")
+# Plot Figure
+if __name__=="__main__":
+    overall_accuracy = []
+    class_accuracy = []
+    for K in range(30):
+        oa, ca = PCA_Gaussian_Bayes(K)
+        overall_accuracy.append(oa)
+        class_accuracy.append(ca)
+    plt.figure()
+    for i in range(10):
+        plt.plot(np.linspace(1,30,30), np.array(class_accuracy)[:,i],'--')
+    plt.plot(np.linspace(1,30,30), overall_accuracy, 'k')
+    plt.legend(['Class '+str(i+1) for i in range(10)]+['Average'])
+    plt.title('Accuracy-K')
+    plt.xlabel('K')
+    plt.ylabel('Accuracy')
+    plt.savefig("1.jpg")
 
 _debug = np.array([2,3,3])
