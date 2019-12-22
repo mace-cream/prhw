@@ -4,7 +4,7 @@ import mytf
 a = mytf.tensor([2,2],'a')
 b = mytf.tensor([2,1],'b')
 c = mytf.tensor([1,2],'c')
-a2 = mytf.softmax(a)
+a2 = mytf.sigmoid(mytf.matmul(a,a))
 d = mytf.sigmoid(mytf.matmul(a2,b))
 e = mytf.sigmoid(mytf.matmul(c,a2))
 c = mytf.sigmoid(mytf.matmul(e,d))

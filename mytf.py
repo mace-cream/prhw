@@ -46,8 +46,12 @@ class tensor(object):
 def matmul(x1,x2):
     out = tensor(x1.shape[:-1]+x2.shape[1:],'name','matmul',[x1,x2])
     x1.output_list.append(out)
-    x2.output_list.append(out)
+    if x1 is not x2:
+        x2.output_list.append(out)
     return out
+
+def add(x1,x2):
+    pass
 
 def sigmoid(x):
     out = tensor(x.shape,'name','sigmoid',[x])
