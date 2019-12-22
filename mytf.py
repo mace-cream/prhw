@@ -1,5 +1,5 @@
 import numpy as np
-from op import _sigmoid
+from op import _sigmoid,_softmax
 
 class tensor(object):
     def __init__(self,shape,name,op_type=None,input_list=None):
@@ -16,6 +16,8 @@ class tensor(object):
             return np.matmul(self.input_list[0].eval(feed),self.input_list[1].eval(feed))
         if self.op_type=='sigmoid':
             return _sigmoid(self.input_list[0].eval(feed))
+        if self.op_type=='softmax':
+            return _softmax(self.input_list[0].eval(feed))
 
     def back(self,target,feed):
         if self is target:
@@ -28,7 +30,17 @@ class tensor(object):
                 if self is out.input_list[1]:
                     gradient = gradient + np.matmul(out.input_list[0].eval(feed).T, out.back(target,feed))
             if out.op_type=='sigmoid':
-                gradient = gradient + _sigmoid(out.input_list[0].eval(feed)) * (1-_sigmoid(out.input_list[0].eval(feed))) * out.back(target,feed)
+                gradient = gradient + _sigmoid(self.eval(feed)) * (1-_sigmoid(self.eval(feed))) * out.back(target,feed)
+            if out.op_type=='softmax':
+                logits = _softmax(self.eval(feed))
+                forward_gradient = out.back(target,feed)
+                local_gradient = []
+                for i in range(self.shape[0]):
+                    local_logits = logits[i].reshape((-1,1))
+                    jacob = np.diag(logits[i])-np.matmul(local_logits,local_logits.T)
+                    local_gradient.append(np.matmul(forward_gradient[i].reshape((1,-1)),jacob))
+                local_gradient = np.concatenate(local_gradient,0)
+                gradient = gradient + local_gradient
         return gradient
 
 def matmul(x1,x2):
