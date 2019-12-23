@@ -14,33 +14,40 @@ class tensor(object):
         '''
         Define the forward computation given input 'feed'
         '''
-        if self.op_type is None:
+        if self.name in feed.keys():
             return feed[self.name]
-        if self.op_type is 'Constant':
-            return self.value
-        if self.op_type=='matmul':
-            return np.matmul(self.input_list[0].eval(feed),self.input_list[1].eval(feed))
-        if self.op_type=='sigmoid':
-            return _sigmoid(self.input_list[0].eval(feed))
-        if self.op_type=='softmax':
-            return _softmax(self.input_list[0].eval(feed))
-        if self.op_type=='add':
-            return self.input_list[0].eval(feed)+self.input_list[1].eval(feed)
-        if self.op_type=='log':
-            return np.log(self.input_list[0].eval(feed))
-        if self.op_type=='product':
-            return self.input_list[0].eval(feed)*self.input_list[1].eval(feed)
-        if self.op_type=='reduce_sum':
-            return np.sum(self.input_list[0].eval(feed))
-        if self.op_type=='scale':
-            return self.input_list[1]*self.input_list[0].eval(feed)
-        if self.op_type=='accuracy':
-            return np.mean(np.argmax(self.input_list[0].eval(feed),-1)==np.argmax(self.input_list[1].eval(feed),-1))
+        if self.op_type is None:
+            result = feed[self.name]
+        elif self.op_type is 'Constant':
+            result = self.value
+        elif self.op_type=='matmul':
+            result = np.matmul(self.input_list[0].eval(feed),self.input_list[1].eval(feed))
+        elif self.op_type=='sigmoid':
+            result = _sigmoid(self.input_list[0].eval(feed))
+        elif self.op_type=='softmax':
+            result = _softmax(self.input_list[0].eval(feed))
+        elif self.op_type=='add':
+            result = self.input_list[0].eval(feed)+self.input_list[1].eval(feed)
+        elif self.op_type=='log':
+            result = np.log(self.input_list[0].eval(feed))
+        elif self.op_type=='product':
+            result = self.input_list[0].eval(feed)*self.input_list[1].eval(feed)
+        elif self.op_type=='reduce_sum':
+            result = np.sum(self.input_list[0].eval(feed))
+        elif self.op_type=='scale':
+            result = self.input_list[1]*self.input_list[0].eval(feed)
+        elif self.op_type=='accuracy':
+            result = np.mean(np.argmax(self.input_list[0].eval(feed),-1)==np.argmax(self.input_list[1].eval(feed),-1))
+        
+        feed.update({self.name: result})
+        return result
 
     def back(self,target,feed):
         '''
         Define the gradient back propgation with respect to 'target' given input 'feed'
         '''
+        if self.name+'_g' in feed.keys():
+            return feed[self.name+'_g']
         if self is target:
             return np.ones(self.shape)
         gradient = 0
@@ -50,10 +57,10 @@ class tensor(object):
                     gradient = gradient + np.matmul(out.back(target,feed), out.input_list[1].eval(feed).T)
                 if self is out.input_list[1]:
                     gradient = gradient + np.matmul(out.input_list[0].eval(feed).T, out.back(target,feed))
-            if out.op_type=='sigmoid':
+            elif out.op_type=='sigmoid':
                 jacob = _sigmoid(self.eval(feed)) * (1-_sigmoid(self.eval(feed)))
                 gradient = gradient + jacob * out.back(target,feed)
-            if out.op_type=='softmax':
+            elif out.op_type=='softmax':
                 logits = _softmax(self.eval(feed))
                 forward_gradient = out.back(target,feed)
                 local_gradient = []
@@ -63,69 +70,83 @@ class tensor(object):
                     local_gradient.append(np.matmul(forward_gradient[i].reshape((1,-1)),jacob))
                 local_gradient = np.concatenate(local_gradient,0)
                 gradient = gradient + local_gradient
-            if out.op_type=='add':
+            elif out.op_type=='add':
                 if self is out.input_list[0]:
                     gradient = gradient + out.back(target,feed)
                 if self is out.input_list[1]:
                     gradient = gradient + out.back(target,feed)
-            if out.op_type=='log':
+            elif out.op_type=='log':
                 gradient = gradient + 1/self.eval(feed)*out.back(target,feed)
-            if out.op_type=='product':
+            elif out.op_type=='product':
                 if self is out.input_list[0]:
                     gradient = gradient + out.back(target,feed)*out.input_list[1].eval(feed)
                 if self is out.input_list[1]:
                     gradient = gradient + out.back(target,feed)*out.input_list[0].eval(feed)
-            if out.op_type=='reduce_sum':
+            elif out.op_type=='reduce_sum':
                 gradient = gradient + np.ones(self.shape)*out.back(target,feed)
-            if out.op_type=='scale':
+            elif out.op_type=='scale':
                 gradient = gradient + out.input_list[1]*out.back(target,feed)
-            if out.op_type in ['accuracy']:
+            elif out.op_type in ['accuracy']:
                 pass
+        
+        feed.update({self.name+'_g': gradient})
         return gradient
 
+class NameManager(object):
+    def __init__(self):
+        self.nameList = {}
+    def get(self,name):
+        if name not in self.nameList.keys():
+            self.nameList.update({name: 0})
+        else:
+            self.nameList.update({name: self.nameList[name]+1})
+        return name+'_'+str(self.nameList[name])
+
+NM = NameManager()
+
 def matmul(x1,x2):
-    out = tensor(x1.shape[:-1]+x2.shape[1:],'name','matmul',[x1,x2])
+    out = tensor(x1.shape[:-1]+x2.shape[1:],NM.get('matmul'),'matmul',[x1,x2])
     x1.output_list.append(out)
     if x1 is not x2:
         x2.output_list.append(out)
     return out
 
 def add(x1,x2):
-    out = tensor(x1.shape,'name','add',[x1,x2])
+    out = tensor(x1.shape,NM.get('add'),'add',[x1,x2])
     x1.output_list.append(out)
     if x1 is not x2:
         x2.output_list.append(out)
     return out
 
 def sigmoid(x):
-    out = tensor(x.shape,'name','sigmoid',[x])
+    out = tensor(x.shape,NM.get('sigmoid'),'sigmoid',[x])
     x.output_list.append(out)
     return out
 
 def log(x):
-    out = tensor(x.shape,'name','log',[x])
+    out = tensor(x.shape,NM.get('log'),'log',[x])
     x.output_list.append(out)
     return out
 
 def product(x1,x2):
-    out = tensor(x1.shape,'name','product',[x1,x2])
+    out = tensor(x1.shape,NM.get('product'),'product',[x1,x2])
     x1.output_list.append(out)
     if x1 is not x2:
         x2.output_list.append(out)
     return out
 
 def softmax(x):
-    out = tensor(x.shape,'name','softmax',[x])
+    out = tensor(x.shape,NM.get('softmax'),'softmax',[x])
     x.output_list.append(out)
     return out
 
 def reduce_sum(x):
-    out = tensor([1,1],'name','reduce_sum',[x])
+    out = tensor([1,1],NM.get('reduce_sum'),'reduce_sum',[x])
     x.output_list.append(out)
     return out
 
 def scale(x,alpha):
-    out = tensor(x.shape,'name','scale',[x,alpha])
+    out = tensor(x.shape,NM.get('scale'),'scale',[x,alpha])
     x.output_list.append(out)
     return out
 
@@ -134,7 +155,7 @@ def CE(x,y):
     return out
 
 def accuracy(pred,y):
-    out = tensor([1,1],'name','accuracy',[pred,y])
+    out = tensor([1,1],NM.get('accuracy'),'accuracy',[pred,y])
     pred.output_list.append(out)
     y.output_list.append(out)
     return out
