@@ -32,6 +32,10 @@ class tensor(object):
             return self.input_list[0].eval(feed)*self.input_list[1].eval(feed)
         if self.op_type=='reduce_sum':
             return np.sum(self.input_list[0].eval(feed))
+        if self.op_type=='scale':
+            return self.input_list[1]*self.input_list[0].eval(feed)
+        if self.op_type=='accuracy':
+            return np.mean(np.argmax(self.input_list[0].eval(feed),-1)==np.argmax(self.input_list[1].eval(feed),-1))
 
     def back(self,target,feed):
         '''
@@ -73,6 +77,10 @@ class tensor(object):
                     gradient = gradient + out.back(target,feed)*out.input_list[0].eval(feed)
             if out.op_type=='reduce_sum':
                 gradient = gradient + np.ones(self.shape)*out.back(target,feed)
+            if out.op_type=='scale':
+                gradient = gradient + out.input_list[1]*out.back(target,feed)
+            if out.op_type in ['accuracy']:
+                pass
         return gradient
 
 def matmul(x1,x2):
@@ -116,10 +124,20 @@ def reduce_sum(x):
     x.output_list.append(out)
     return out
 
-def CE(x,y):
-    out = reduce_sum(product(y,log(x)))
+def scale(x,alpha):
+    out = tensor(x.shape,'name','scale',[x,alpha])
+    x.output_list.append(out)
     return out
 
+def CE(x,y):
+    out = scale(reduce_sum(product(y,log(x))),-1)
+    return out
+
+def accuracy(pred,y):
+    out = tensor([1,1],'name','accuracy',[pred,y])
+    pred.output_list.append(out)
+    y.output_list.append(out)
+    return out
 
 if __name__=="__main__":
     '''
@@ -132,7 +150,7 @@ if __name__=="__main__":
     d = sigmoid(matmul(a2,b))
     d = add(d,matmul(a2,b))
     e = sigmoid(matmul(c,a2))
-    c = add(matmul(e,d),CE(a2,a2))
+    c = add(matmul(e,d),scale(CE(a2,a2),-1))
 
     feed = {'a':np.array([[1.,2],[3,4.5]]),'b':np.array([[1.],[2]]),'c':np.array([[1.,2]])}
     print(a.back(c,feed))
