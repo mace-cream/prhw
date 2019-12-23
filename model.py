@@ -4,6 +4,7 @@ import mytf
 class MLP(object):
     def __init__(self,config):
         self.input = mytf.tensor([config['BatchSize'], config['InputDim']],'Input')
+        self.label = mytf.tensor([config['BatchSize'], config['OutputDim']],'Label')
         h = self.input
         for i in range(config['LayerNum']):
             if i==0:
@@ -16,4 +17,5 @@ class MLP(object):
         w = mytf.tensor([config['HiddenNum'][-1], config['OutputDim']],'OutputWeight')
         b = mytf.tensor([1, config['OutputDim']],'OutputBias')
         h = mytf.add(mytf.matmul(h, w), b)
-        h = mytf.softmax(h)
+        self.out = mytf.softmax(h)
+        self.loss = mytf.CE(self.out, self.label)

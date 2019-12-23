@@ -118,9 +118,6 @@ def reduce_sum(x):
 
 def CE(x,y):
     out = reduce_sum(product(y,log(x)))
-    x.output_list.append(out)
-    if x is not y:
-        y.output_list.append(out)
     return out
 
 
@@ -131,11 +128,11 @@ if __name__=="__main__":
     a = tensor([2,2],'a')
     b = tensor([2,1],'b')
     c = tensor([1,2],'c')
-    a2 = log(sigmoid(product(a,a)))
+    a2 = sigmoid(product(a,a))
     d = sigmoid(matmul(a2,b))
     d = add(d,matmul(a2,b))
     e = sigmoid(matmul(c,a2))
-    c = sigmoid(matmul(e,d))
+    c = add(matmul(e,d),CE(a2,a2))
 
     feed = {'a':np.array([[1.,2],[3,4.5]]),'b':np.array([[1.],[2]]),'c':np.array([[1.,2]])}
     print(a.back(c,feed))

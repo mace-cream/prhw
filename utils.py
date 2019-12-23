@@ -2,7 +2,12 @@ import os
 import struct
 import numpy as np
 import matplotlib.pyplot as plt
- 
+
+def one_hot(x,depth):
+    result = np.matmul(np.ones((x.shape[0],1)),np.arange(depth).reshape((1,depth)))
+    x = np.matmul(x.reshape((x.shape[0],1)),np.ones((1,depth)))
+    return (result==x)*1.0
+
 def load_mnist():
     '''
     Load mnist data
