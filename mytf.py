@@ -150,6 +150,10 @@ def scale(x,alpha):
     x.output_list.append(out)
     return out
 
+def reduce_mean(x):
+    out = scale(reduce_sum(x),1/np.product(x.shape))
+    return out
+
 def CE(x,y):
     out = scale(reduce_sum(product(y,log(x))),-1)
     return out
