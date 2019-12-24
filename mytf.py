@@ -51,7 +51,9 @@ class tensor(object):
                     for j in range(pad, self.input_list[0].shape[2]-pad, stride):
                         zipped.append(value[n,i-pad:i+pad+1,j-pad:j+pad+1,:].reshape((1,-1)))
             result = np.concatenate(zipped,0)
-        
+        elif self.op_type=='reshape':
+            result = self.input_list[0].eval(feed).reshape(self.input_list[1])
+
         feed.update({self.name: result})
         return result
 
@@ -113,6 +115,8 @@ class tensor(object):
                             sub_gradient[n,i-pad:i+pad+1,j-pad:j+pad+1,:] += forward_gradient[counter].reshape((kernel_size,kernel_size,-1))
                             counter = counter + 1
                 gradient = gradient + sub_gradient
+            elif out.op_type=='reshape':
+                gradient = gradient + out.back(target,feed).reshape(self.shape)
 
             elif out.op_type in ['accuracy']:
                 pass
@@ -206,6 +210,21 @@ def imageZIP(x,kernel_size=3,stride=1):
     x_pad.output_list.append(out)
     return out
 
+def reshape(x,target_shape):
+    out = tensor(target_shape,NM.get('reshape'),'reshape',[x,target_shape])
+    x.output_list.append(out)
+    return out
+
+def conv2D(x,w,stride=1):
+    kernel_size = w.shape[0]
+    x_ZIP = imageZIP(x,kernel_size,stride)
+    w_ZIP = reshape(w, [-1,w.shape[-1]])
+    out = matmul(x_ZIP,w_ZIP)
+    out_img = reshape(out, x.shape[:-1]+[w.shape[-1]])
+    return out_img
+    
+
+
 if __name__=="__main__":
     '''
     Here we use a very simple example to check the result, with the gradient result given by difference limit.
@@ -220,14 +239,23 @@ if __name__=="__main__":
     e = sigmoid(matmul(c,a2))
     c = add(matmul(e,d),scale(CE(a2,a2),-1))
     img = tensor([2,10,10,1],'img')
-    t = imageZIP(img,3,1)
+    w = tensor([3,3,1,5],'weight')
+    t = reduce_mean(sigmoid(conv2D(img,w)))
 
-    feed0 = {'a':np.array([[1.,2],[3,4.5]]),'b':np.array([[1.],[2]]),'c':np.array([[1.,2]]),'img':np.random.standard_normal([2,10,10,1])}
+    feed0 = {'a':np.array([[1.,2],[3,4.5]]),'b':np.array([[1.],[2]]),'c':np.array([[1.,2]]),'img':np.random.standard_normal([2,10,10,1]),'weight':np.random.standard_normal([3,3,1,5])}
+
+    # Test Example 1: Basic Operation
     feed = copy.deepcopy(feed0)
-    print(img.back(t,feed).shape)
     print(a.back(c,feed))
     for i in range(2):
         for j in range(2):
             feed2 = copy.deepcopy(feed0)
             feed2['a'][i][j] = feed2['a'][i][j]+2e-3
             print((c.eval(feed2)-c.eval(feed))/2e-3)
+
+    # Test Example 2: Convolution
+    feed = copy.deepcopy(feed0)
+    print(img.back(t,feed)[0,0,0,0])
+    feed2 = copy.deepcopy(feed0)
+    feed2['img'][0,0,0,0] += 2e-3
+    print((t.eval(feed2)-t.eval(feed))/2e-3)
