@@ -38,6 +38,19 @@ class tensor(object):
             result = self.input_list[1]*self.input_list[0].eval(feed)
         elif self.op_type=='accuracy':
             result = np.mean(np.argmax(self.input_list[0].eval(feed),-1)==np.argmax(self.input_list[1].eval(feed),-1))
+        elif self.op_type=='imagePadding':
+            pad_size = int(self.input_list[1])
+            result = np.pad(self.input_list[0].eval(feed), ((0,0),(pad_size,pad_size),(pad_size,pad_size),(0,0)), 'constant')
+        elif self.op_type=='imageZIP':
+            kernel_size,stride = self.input_list[1],self.input_list[2]
+            pad = int((kernel_size-1)/2)
+            value = self.input_list[0].eval(feed)
+            zipped = []
+            for n in range(self.input_list[0].shape[0]):
+                for i in range(pad, self.input_list[0].shape[1]-pad, stride):
+                    for j in range(pad, self.input_list[0].shape[2]-pad, stride):
+                        zipped.append(value[n,i-pad:i+pad+1,j-pad:j+pad+1,:].reshape((1,-1)))
+            result = np.concatenate(zipped,0)
         
         feed.update({self.name: result})
         return result
@@ -86,6 +99,8 @@ class tensor(object):
                 gradient = gradient + np.ones(self.shape)*out.back(target,feed)
             elif out.op_type=='scale':
                 gradient = gradient + out.input_list[1]*out.back(target,feed)
+            elif out.op_type=='imagePadding':
+                gradient = gradient + out.back(target,feed)[:,out.input_list[1]:-out.input_list[1],out.input_list[1]:-out.input_list[1],:]
             elif out.op_type in ['accuracy']:
                 pass
         
@@ -164,6 +179,20 @@ def accuracy(pred,y):
     y.output_list.append(out)
     return out
 
+def imagePadding(x,pad_size=1):
+    new_shape = [int(x.shape[i]+[0,pad_size*2,pad_size*2,0][i]) for i in range(len(x.shape))]
+    out = tensor(new_shape,NM.get('imagePadding'),'imagePadding',[x,pad_size])
+    x.output_list.append(out)
+    return out
+
+def imageZIP(x,kernel_size=3,stride=1):
+    x_pad = imagePadding(x,(kernel_size-1)/2)
+    new_shape = [int(x.shape[0]*(x.shape[1]/stride)*(x.shape[2]/stride)),
+        int(kernel_size*kernel_size*x.shape[3])]
+    out = tensor(new_shape,NM.get('imageZIP'),'imageZIP',[x_pad,kernel_size,stride])
+    x_pad.output_list.append(out)
+    return out
+
 if __name__=="__main__":
     '''
     Here we use a very simple example to check the result, with the gradient result given by difference limit.
@@ -176,8 +205,11 @@ if __name__=="__main__":
     d = add(d,matmul(a2,b))
     e = sigmoid(matmul(c,a2))
     c = add(matmul(e,d),scale(CE(a2,a2),-1))
+    img = tensor([2,10,10,1],'img')
+    t = imageZIP(img,3,1)
 
-    feed = {'a':np.array([[1.,2],[3,4.5]]),'b':np.array([[1.],[2]]),'c':np.array([[1.,2]])}
+    feed = {'a':np.array([[1.,2],[3,4.5]]),'b':np.array([[1.],[2]]),'c':np.array([[1.,2]]),'img':np.random.standard_normal([2,10,10,1])}
+    print(t.eval(feed).shape)
     print(a.back(c,feed))
     import copy
     for i in range(2):
