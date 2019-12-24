@@ -101,6 +101,19 @@ class tensor(object):
                 gradient = gradient + out.input_list[1]*out.back(target,feed)
             elif out.op_type=='imagePadding':
                 gradient = gradient + out.back(target,feed)[:,out.input_list[1]:-out.input_list[1],out.input_list[1]:-out.input_list[1],:]
+            elif out.op_type=='imageZIP':
+                forward_gradient = out.back(target,feed)
+                sub_gradient = np.zeros(self.shape)
+                kernel_size,stride = out.input_list[1],out.input_list[2]
+                pad = int((kernel_size-1)/2)
+                counter = 0
+                for n in range(self.shape[0]):
+                    for i in range(pad, self.shape[1]-pad, stride):
+                        for j in range(pad, self.shape[2]-pad, stride):
+                            sub_gradient[n,i-pad:i+pad+1,j-pad:j+pad+1,:] += forward_gradient[counter].reshape((kernel_size,kernel_size,-1))
+                            counter = counter + 1
+                gradient = gradient + sub_gradient
+
             elif out.op_type in ['accuracy']:
                 pass
         
@@ -181,7 +194,7 @@ def accuracy(pred,y):
 
 def imagePadding(x,pad_size=1):
     new_shape = [int(x.shape[i]+[0,pad_size*2,pad_size*2,0][i]) for i in range(len(x.shape))]
-    out = tensor(new_shape,NM.get('imagePadding'),'imagePadding',[x,pad_size])
+    out = tensor(new_shape,NM.get('imagePadding'),'imagePadding',[x,int(pad_size)])
     x.output_list.append(out)
     return out
 
@@ -211,7 +224,7 @@ if __name__=="__main__":
 
     feed0 = {'a':np.array([[1.,2],[3,4.5]]),'b':np.array([[1.],[2]]),'c':np.array([[1.,2]]),'img':np.random.standard_normal([2,10,10,1])}
     feed = copy.deepcopy(feed0)
-    print(t.eval(feed).shape)
+    print(img.back(t,feed).shape)
     print(a.back(c,feed))
     for i in range(2):
         for j in range(2):
