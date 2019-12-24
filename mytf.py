@@ -197,6 +197,7 @@ if __name__=="__main__":
     '''
     Here we use a very simple example to check the result, with the gradient result given by difference limit.
     '''
+    import copy
     a = tensor([2,2],'a')
     b = tensor([2,1],'b')
     c = tensor([1,2],'c')
@@ -208,12 +209,12 @@ if __name__=="__main__":
     img = tensor([2,10,10,1],'img')
     t = imageZIP(img,3,1)
 
-    feed = {'a':np.array([[1.,2],[3,4.5]]),'b':np.array([[1.],[2]]),'c':np.array([[1.,2]]),'img':np.random.standard_normal([2,10,10,1])}
+    feed0 = {'a':np.array([[1.,2],[3,4.5]]),'b':np.array([[1.],[2]]),'c':np.array([[1.,2]]),'img':np.random.standard_normal([2,10,10,1])}
+    feed = copy.deepcopy(feed0)
     print(t.eval(feed).shape)
     print(a.back(c,feed))
-    import copy
     for i in range(2):
         for j in range(2):
-            feed2 = copy.deepcopy(feed)
+            feed2 = copy.deepcopy(feed0)
             feed2['a'][i][j] = feed2['a'][i][j]+2e-3
             print((c.eval(feed2)-c.eval(feed))/2e-3)
