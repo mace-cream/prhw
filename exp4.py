@@ -1,7 +1,7 @@
 import numpy as np
 import mytf
 from utils import load_mnist, one_hot
-from model import MLP
+from model import MLP, LeNet
 
 # Load Data
 x_train, y_train, x_test, y_test = load_mnist()
@@ -9,8 +9,13 @@ x_train = x_train/255.0
 x_test = x_test/255.0
 
 # Define the network
-config = {'EpochNum': 100, 'BatchSize': 50, 'InputDim': 784, 'OutputDim': 10, 'LayerNum': 3, 'HiddenNum': [1000,500,100], 'LearningRate': 0.01, 'lambda': 0.1}
-model = MLP(config)
+Network = ['MLP', 'LeNet'][1]
+if Network=='MLP':
+    config = {'EpochNum': 100, 'BatchSize': 50, 'InputDim': 784, 'OutputDim': 10, 'LayerNum': 3, 'HiddenNum': [1000,500,100], 'LearningRate': 0.01, 'lambda': 0.1}
+    model = MLP(config)
+if Network=='LeNet':
+    config = {'EpochNum': 100, 'BatchSize': 50, 'Height': 28, 'Width': 28, 'InputDim': 1, 'OutputDim': 10, 'LayerNum': 1, 'HiddenNum': [32,64,128], 'KernelSize': 3, 'LearningRate': 0.01, 'lambda': 0.0}
+    model = LeNet(config)
 
 # Training
 for e in range(config['EpochNum']):
@@ -21,9 +26,14 @@ for e in range(config['EpochNum']):
     counter = 0
     loss = []
     while counter + config['BatchSize'] <= x_train.shape[0]:
-        x_batch = x_train[counter:counter+config['BatchSize']].reshape([config['BatchSize'],-1])
-        y_batch = one_hot(y_train[counter:counter+config['BatchSize']], config['OutputDim'])
-        feed = {model.input.name: x_batch, model.label.name: y_batch}
+        if Network=='MLP':
+            x_batch = x_train[counter:counter+config['BatchSize']].reshape([config['BatchSize'],-1])
+            y_batch = one_hot(y_train[counter:counter+config['BatchSize']], config['OutputDim'])
+            feed = {model.input.name: x_batch, model.label.name: y_batch}
+        if Network=='LeNet':
+            x_batch = x_train[counter:counter+config['BatchSize']].reshape([config['BatchSize'], config['Height'], config['Width'], config['InputDim']])
+            y_batch = one_hot(y_train[counter:counter+config['BatchSize']], config['OutputDim'])
+            feed = {model.input.name: x_batch, model.label.name: y_batch}
         feed.update(model.weight_value)
         loss.append(model.loss.eval(feed))
         gradient = {k:v.back(model.loss,feed) for k,v in model.weight.items()}
@@ -34,9 +44,14 @@ for e in range(config['EpochNum']):
     counter = 0
     accuracy = []
     while counter + config['BatchSize'] <= x_test.shape[0]:
-        x_batch = x_test[counter:counter+config['BatchSize']].reshape([config['BatchSize'],-1])
-        y_batch = one_hot(y_test[counter:counter+config['BatchSize']], config['OutputDim'])
-        feed = {model.input.name: x_batch, model.label.name: y_batch}
+        if Network=='MLP':
+            x_batch = x_test[counter:counter+config['BatchSize']].reshape([config['BatchSize'],-1])
+            y_batch = one_hot(y_test[counter:counter+config['BatchSize']], config['OutputDim'])
+            feed = {model.input.name: x_batch, model.label.name: y_batch}
+        if Network=='LeNet':
+            x_batch = x_test[counter:counter+config['BatchSize']].reshape([config['BatchSize'], config['Height'], config['Width'], config['InputDim']])
+            y_batch = one_hot(y_test[counter:counter+config['BatchSize']], config['OutputDim'])
+            feed = {model.input.name: x_batch, model.label.name: y_batch}
         feed.update(model.weight_value)
         accuracy.append(model.accuracy.eval(feed))
         counter = counter + config['BatchSize']
