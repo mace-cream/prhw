@@ -30,8 +30,9 @@ class MLP(object):
         h = mytf.add(mytf.matmul(h, w), b)
         self.out = mytf.softmax(h)
         self.loss = mytf.CE_with_logit(h, self.label)
-        for w in self.weight.values():
-            self.loss = mytf.add(self.loss, mytf.scale(mytf.reduce_mean(mytf.product(w,w)),config['lambda']))
+        if config['lambda']!=0:
+            for w in self.weight.values():
+                self.loss = mytf.add(self.loss, mytf.scale(mytf.reduce_mean(mytf.product(w,w)),config['lambda']))
         self.accuracy = mytf.accuracy(self.out, self.label)
     
     def initWeight(self,initializer=np.random.standard_normal):
@@ -69,8 +70,9 @@ class LeNet(object):
         self.aftermap = h
         self.out = mytf.softmax(h)
         self.loss = mytf.CE_with_logit(h, self.label)
-        for w in self.weight.values():
-            self.loss = mytf.add(self.loss, mytf.scale(mytf.reduce_mean(mytf.product(w,w)),config['lambda']))
+        if config['lambda']!=0:
+            for w in self.weight.values():
+                self.loss = mytf.add(self.loss, mytf.scale(mytf.reduce_mean(mytf.product(w,w)),config['lambda']))
         self.accuracy = mytf.accuracy(self.out, self.label)
 
     def initWeight(self,initializer=np.random.standard_normal):

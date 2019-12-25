@@ -208,11 +208,11 @@ def reduce_mean(x):
     return out
 
 def CE(x,y):
-    out = scale(reduce_sum(product(y,log(x))),-1)
+    out = scale(reduce_mean(product(y,log(x))),-1)
     return out
 
 def CE_with_logit(x,y):
-    out = scale(reduce_sum(product(y,log_softmax(x))),-1)
+    out = scale(reduce_mean(product(y,log_softmax(x))),-1)
     return out
 
 def accuracy(pred,y):
