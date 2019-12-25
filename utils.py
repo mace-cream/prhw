@@ -8,6 +8,12 @@ def one_hot(x,depth):
     x = np.matmul(x.reshape((x.shape[0],1)),np.ones((1,depth)))
     return (result==x)*1.0
 
+def _sigmoid(x):
+    return 1/(1+np.exp(-x))
+
+def _softmax(x):
+    return (np.exp(x).T/np.sum(np.exp(x),1)).T
+
 def load_mnist():
     '''
     Load mnist data
@@ -35,12 +41,12 @@ def load_mnist():
     with open(train_labels_path, 'rb') as lpath:
         # '>' denotes bigedian
         # 'I' denotes unsigned char
-        magic, n = struct.unpack('>II', lpath.read(8))
+        _ = struct.unpack('>II', lpath.read(8))
         #loaded = np.fromfile(lpath, dtype = np.uint8)
         train_labels = np.fromfile(lpath, dtype = np.uint8).astype(np.float)
 
     with open(train_images_path, 'rb') as ipath:
-        magic, num, rows, cols = struct.unpack('>IIII', ipath.read(16))
+        _ = struct.unpack('>IIII', ipath.read(16))
         loaded = np.fromfile(train_images_path, dtype = np.uint8)
         # images start from the 16th bytes
         train_images = loaded[16:].reshape(len(train_labels), 784).astype(np.float)
@@ -48,12 +54,12 @@ def load_mnist():
     with open(test_labels_path, 'rb') as lpath:
         # '>' denotes bigedian
         # 'I' denotes unsigned char
-        magic, n = struct.unpack('>II', lpath.read(8))
+        _ = struct.unpack('>II', lpath.read(8))
         #loaded = np.fromfile(lpath, dtype = np.uint8)
         test_labels = np.fromfile(lpath, dtype = np.uint8).astype(np.float)
 
     with open(test_images_path, 'rb') as ipath:
-        magic, num, rows, cols = struct.unpack('>IIII', ipath.read(16))
+        _ = struct.unpack('>IIII', ipath.read(16))
         loaded = np.fromfile(test_images_path, dtype = np.uint8)
         # images start from the 16th bytes
         test_images = loaded[16:].reshape(len(test_labels), 784)  

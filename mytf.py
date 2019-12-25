@@ -1,5 +1,5 @@
 import numpy as np
-from op import _sigmoid,_softmax
+from utils import _sigmoid,_softmax
 
 class tensor(object):
     def __init__(self,shape,name,op_type=None,input_list=None,value=None):
