@@ -49,11 +49,10 @@ class tensor(object):
             pad = int((kernel_size-1)/2)
             value = self.input_list[0].eval(feed)
             zipped = []
-            for n in range(self.input_list[0].shape[0]):
-                for i in range(pad, self.input_list[0].shape[1]-pad, stride):
-                    for j in range(pad, self.input_list[0].shape[2]-pad, stride):
-                        zipped.append(value[n,i-pad:i+pad+1,j-pad:j+pad+1,:].reshape((1,-1)))
-            result = np.concatenate(zipped,0)
+            for i in range(pad, self.input_list[0].shape[1]-pad, stride):
+                for j in range(pad, self.input_list[0].shape[2]-pad, stride):
+                    zipped.append(value[:,i-pad:i+pad+1,j-pad:j+pad+1,:].reshape((self.input_list[0].shape[0],-1)))
+            result = np.stack(zipped,0).transpose((1,0,2)).reshape(self.shape)
         elif self.op_type=='reshape':
             result = self.input_list[0].eval(feed).reshape(self.input_list[1])
 
@@ -120,16 +119,15 @@ class tensor(object):
             elif out.op_type=='imagePadding':
                 gradient = gradient + out.back(target,feed)[:,out.input_list[1]:-out.input_list[1],out.input_list[1]:-out.input_list[1],:]
             elif out.op_type=='imageZIP':
-                forward_gradient = out.back(target,feed)
+                forward_gradient = out.back(target,feed).reshape((self.shape[0],-1,out.shape[-1])).transpose((1,0,2))
                 sub_gradient = np.zeros(self.shape)
                 kernel_size,stride = out.input_list[1],out.input_list[2]
                 pad = int((kernel_size-1)/2)
                 counter = 0
-                for n in range(self.shape[0]):
-                    for i in range(pad, self.shape[1]-pad, stride):
-                        for j in range(pad, self.shape[2]-pad, stride):
-                            sub_gradient[n,i-pad:i+pad+1,j-pad:j+pad+1,:] += forward_gradient[counter].reshape((kernel_size,kernel_size,-1))
-                            counter = counter + 1
+                for i in range(pad, self.shape[1]-pad, stride):
+                    for j in range(pad, self.shape[2]-pad, stride):
+                        sub_gradient[:,i-pad:i+pad+1,j-pad:j+pad+1,:] += forward_gradient[counter].reshape((self.shape[0],kernel_size,kernel_size,-1))
+                        counter = counter + 1
                 gradient = gradient + sub_gradient
             elif out.op_type=='reshape':
                 gradient = gradient + out.back(target,feed).reshape(self.shape)
