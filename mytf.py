@@ -26,6 +26,9 @@ class tensor(object):
             result = _sigmoid(self.input_list[0].eval(feed))
         elif self.op_type=='softmax':
             result = _softmax(self.input_list[0].eval(feed))
+        elif self.op_type=='log_softmax':
+            logit = self.input_list[0].eval(feed)
+            result = logit - np.log(np.sum(np.exp(logit),1,keepdims=True))
         elif self.op_type=='add':
             result = self.input_list[0].eval(feed)+self.input_list[1].eval(feed)
         elif self.op_type=='log':
@@ -83,6 +86,16 @@ class tensor(object):
                     local_logits = logits[i].reshape((-1,1))
                     jacob = np.diag(logits[i])-np.matmul(local_logits,local_logits.T)
                     local_gradient.append(np.matmul(forward_gradient[i].reshape((1,-1)),jacob))
+                local_gradient = np.concatenate(local_gradient,0)
+                gradient = gradient + local_gradient
+            elif out.op_type=='log_softmax':
+                logits = _softmax(self.eval(feed))
+                forward_gradient = out.back(target,feed)
+                local_gradient = []
+                for i in range(self.shape[0]):
+                    local_logits = logits[i].reshape((-1,1))
+                    jacob = np.eye(local_logits.shape[0])-np.matmul(local_logits,(0*local_logits+1).T)
+                    local_gradient.append(np.matmul(jacob,forward_gradient[i].reshape((-1,1))).T)
                 local_gradient = np.concatenate(local_gradient,0)
                 gradient = gradient + local_gradient
             elif out.op_type=='add':
@@ -172,6 +185,13 @@ def softmax(x):
     x.output_list.append(out)
     return out
 
+def log_softmax(x):
+    # We found that log(softmax(x)) have serious numerical issue.
+    # Therefore we command use log_softmax() instead.
+    out = tensor(x.shape,NM.get('log_softmax'),'log_softmax',[x])
+    x.output_list.append(out)
+    return out
+
 def reduce_sum(x):
     out = tensor([1,1],NM.get('reduce_sum'),'reduce_sum',[x])
     x.output_list.append(out)
@@ -188,6 +208,10 @@ def reduce_mean(x):
 
 def CE(x,y):
     out = scale(reduce_sum(product(y,log(x))),-1)
+    return out
+
+def CE_with_logit(x,y):
+    out = scale(reduce_sum(product(y,log_softmax(x))),-1)
     return out
 
 def accuracy(pred,y):
@@ -237,7 +261,7 @@ if __name__=="__main__":
     d = sigmoid(matmul(a2,b))
     d = add(d,matmul(a2,b))
     e = sigmoid(matmul(c,a2))
-    c = add(matmul(e,d),scale(CE(a2,a2),-1))
+    c = add(matmul(e,d),scale(CE_with_logit(a2,a2),-1))
     img = tensor([2,10,10,1],'img')
     w = tensor([3,3,1,5],'weight')
     t = reduce_mean(sigmoid(conv2D(img,w)))

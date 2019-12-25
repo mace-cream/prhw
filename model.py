@@ -68,7 +68,7 @@ class LeNet(object):
         h = mytf.add(mytf.matmul(h, w), b)
         self.aftermap = h
         self.out = mytf.softmax(h)
-        self.loss = mytf.CE(self.out, self.label)
+        self.loss = mytf.CE_with_logit(h, self.label)
         for w in self.weight.values():
             self.loss = mytf.add(self.loss, mytf.scale(mytf.reduce_mean(mytf.product(w,w)),config['lambda']))
         self.accuracy = mytf.accuracy(self.out, self.label)
