@@ -100,10 +100,12 @@ class tensor(object):
                 local_gradient = np.concatenate(local_gradient,0)
                 gradient = gradient + local_gradient
             elif out.op_type=='add':
+                dim_difference = len(out.shape)-len(self.shape)
+                boardcast_dim = [i for i in range(dim_difference)] + [i for i in range(dim_difference, len(out.shape)) if self.shape[i-dim_difference]==1]
                 if self is out.input_list[0]:
-                    gradient = gradient + out.back(target,feed)
+                    gradient = gradient + np.sum(out.back(target,feed),tuple(boardcast_dim)).reshape(self.shape)
                 if self is out.input_list[1]:
-                    gradient = gradient + out.back(target,feed)
+                    gradient = gradient + np.sum(out.back(target,feed),tuple(boardcast_dim)).reshape(self.shape)
             elif out.op_type=='log':
                 gradient = gradient + 1/self.eval(feed)*out.back(target,feed)
             elif out.op_type=='product':
