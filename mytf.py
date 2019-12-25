@@ -29,8 +29,8 @@ class tensor(object):
         elif self.op_type=='log_softmax':
             logit = self.input_list[0].eval(feed)
             # Note: The exact calculation of log(sum(exp(s_i))) has serious numerical issue, we use max instead.
-            #result = logit - np.log(np.sum(np.exp(logit),1,keepdims=True))
-            result = logit - np.max(logit,1,keepdims=True)
+            result = logit - np.log(np.sum(np.exp(logit),1,keepdims=True))
+            #result = logit - np.max(logit,1,keepdims=True)
         elif self.op_type=='add':
             result = self.input_list[0].eval(feed)+self.input_list[1].eval(feed)
         elif self.op_type=='log':
