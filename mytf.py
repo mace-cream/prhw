@@ -81,13 +81,14 @@ class tensor(object):
             elif out.op_type=='softmax':
                 logits = _softmax(self.eval(feed))
                 forward_gradient = out.back(target,feed)
-                local_gradient = []
-                for i in range(self.shape[0]):
-                    local_logits = logits[i].reshape((-1,1))
-                    jacob = np.diag(logits[i])-np.matmul(local_logits,local_logits.T)
-                    local_gradient.append(np.matmul(forward_gradient[i].reshape((1,-1)),jacob))
-                local_gradient = np.concatenate(local_gradient,0)
-                gradient = gradient + local_gradient
+                if forward_gradient!=0:
+                    local_gradient = []
+                    for i in range(self.shape[0]):
+                        local_logits = logits[i].reshape((-1,1))
+                        jacob = np.diag(logits[i])-np.matmul(local_logits,local_logits.T)
+                        local_gradient.append(np.matmul(forward_gradient[i].reshape((1,-1)),jacob))
+                    local_gradient = np.concatenate(local_gradient,0)
+                    gradient = gradient + local_gradient
             elif out.op_type=='log_softmax':
                 logits = _softmax(self.eval(feed))
                 forward_gradient = out.back(target,feed)
@@ -245,8 +246,7 @@ def conv2D(x,w,stride=1):
     w_ZIP = reshape(w, [-1,w.shape[-1]])
     out = matmul(x_ZIP,w_ZIP)
     out_img = reshape(out, x.shape[:-1]+[w.shape[-1]])
-    return out_img
-    
+    return out_img 
 
 
 if __name__=="__main__":

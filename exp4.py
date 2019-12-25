@@ -14,7 +14,7 @@ if Network=='MLP':
     config = {'EpochNum': 100, 'BatchSize': 50, 'InputDim': 784, 'OutputDim': 10, 'LayerNum': 3, 'HiddenNum': [1000,500,100], 'LearningRate': 0.01, 'lambda': 0.1}
     model = MLP(config)
 if Network=='LeNet':
-    config = {'EpochNum': 100, 'BatchSize': 50, 'Height': 28, 'Width': 28, 'InputDim': 1, 'OutputDim': 10, 'LayerNum': 1, 'HiddenNum': [32,64,128], 'KernelSize': 3, 'LearningRate': 0.01, 'lambda': 0.0}
+    config = {'EpochNum': 100, 'BatchSize': 50, 'Height': 28, 'Width': 28, 'InputDim': 1, 'OutputDim': 10, 'LayerNum': 1, 'HiddenNum': [32,64,128], 'KernelSize': 3, 'LearningRate': 0.001, 'lambda': 0.0}
     model = LeNet(config)
 
 # Training
