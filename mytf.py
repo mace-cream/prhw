@@ -24,6 +24,9 @@ class tensor(object):
             result = np.matmul(self.input_list[0].eval(feed),self.input_list[1].eval(feed))
         elif self.op_type=='sigmoid':
             result = _sigmoid(self.input_list[0].eval(feed))
+        elif self.op_type=='relu':
+            result = self.input_list[0].eval(feed)
+            result[result<0] = 0
         elif self.op_type=='softmax':
             result = _softmax(self.input_list[0].eval(feed))
         elif self.op_type=='log_softmax':
@@ -79,6 +82,10 @@ class tensor(object):
             elif out.op_type=='sigmoid':
                 jacob = _sigmoid(self.eval(feed)) * (1-_sigmoid(self.eval(feed)))
                 gradient = gradient + jacob * out.back(target,feed)
+            elif out.op_type=='relu':
+                forward_gradient = out.back(target,feed)
+                local_gradient = out.eval(feed)
+                local_gradient = (local_gradient!=0)*1.0
             elif out.op_type=='softmax':
                 logits = _softmax(self.eval(feed))
                 forward_gradient = out.back(target,feed)
@@ -168,6 +175,11 @@ def add(x1,x2):
 
 def sigmoid(x):
     out = tensor(x.shape,NM.get('sigmoid'),'sigmoid',[x])
+    x.output_list.append(out)
+    return out
+
+def relu(x):
+    out = tensor(x.shape,NM.get('relu'),'relu',[x])
     x.output_list.append(out)
     return out
 
