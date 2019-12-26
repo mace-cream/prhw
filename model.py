@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import mytf
 
 class MLP(object):
@@ -81,3 +82,14 @@ class LeNet(object):
 
     def initWeight(self,initializer=np.random.standard_normal):
         self.weight_value = {k:initializer(v.shape) for k,v in self.weight.items()}
+
+    def saveModel(self,path):
+        filepath, _ = os.path.split(path)
+        if not os.path.exists(filepath):
+            os.makedirs(filepath)
+        np.savez(path, **(self.weight_value))
+
+    def loadModel(self,path):
+        if path[-4:] != '.npz':
+            path = path + '.npz'
+        self.weight_value = dict(np.load(path))
