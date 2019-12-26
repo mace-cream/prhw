@@ -33,7 +33,8 @@ class tensor(object):
             logit = self.input_list[0].eval(feed)
             # Note: The exact calculation of log(sum(exp(s_i))) has serious numerical issue, we use max instead.
             result = logit - np.log(np.sum(np.exp(logit),1,keepdims=True))
-            #result = logit - np.max(logit,1,keepdims=True)
+            if np.any(~np.isfinite(result)):
+                result = logit - np.max(logit,1,keepdims=True)
         elif self.op_type=='add':
             result = self.input_list[0].eval(feed)+self.input_list[1].eval(feed)
         elif self.op_type=='log':
@@ -86,6 +87,7 @@ class tensor(object):
                 forward_gradient = out.back(target,feed)
                 local_gradient = out.eval(feed)
                 local_gradient = (local_gradient!=0)*1.0
+                gradient = gradient + local_gradient
             elif out.op_type=='softmax':
                 logits = _softmax(self.eval(feed))
                 forward_gradient = out.back(target,feed)

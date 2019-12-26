@@ -12,7 +12,10 @@ def _sigmoid(x):
     return 1/(1+np.exp(-x))
 
 def _softmax(x):
-    return (np.exp(x).T/np.sum(np.exp(x),1)).T
+    result = (np.exp(x).T/np.sum(np.exp(x),1)).T
+    if np.any(~np.isfinite(result)):
+        result = (x-np.min(x))/(np.max(x)-np.min(x))
+    return result
 
 def load_mnist():
     '''
