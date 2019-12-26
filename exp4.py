@@ -4,6 +4,8 @@ from utils import load_mnist
 from mytf import one_hot
 from model import MLP, LeNet
 
+task_name = str(int(time.time()))
+
 # Load Data
 x_train, y_train, x_test, y_test = load_mnist()
 x_train = x_train/255.0
@@ -20,6 +22,7 @@ if Network=='LeNet':
 
 # Training
 for e in range(config['EpochNum']):
+    start_time = time.time()
     perm = np.linspace(0,x_train.shape[0]-1,x_train.shape[0],dtype=int)
     np.random.shuffle(perm)
     x_train = x_train[perm]
@@ -39,9 +42,7 @@ for e in range(config['EpochNum']):
         feed.update(model.weight_value)
         loss.append(model.loss.eval(feed))
         accuracy_train.append(model.accuracy.eval(feed))
-        gradient = {k:v.back(model.loss,feed) for k,v in model.weight.items()}
-        model.weight_value.update({
-            k:model.weight_value[k]-config['LearningRate']*gradient[k] for k in model.weight.keys()})
+        model.update(feed,config['LearningRate'])
         counter = counter + config['BatchSize']
     
     counter = 0
@@ -59,7 +60,11 @@ for e in range(config['EpochNum']):
         accuracy_test.append(model.accuracy.eval(feed))
         counter = counter + config['BatchSize']
 
-    print('Epoch ',e,' Done, Loss: ',round(np.mean(loss),4),', Train Acc: ',round(np.mean(accuracy_train),4),', Test Acc: ',round(np.mean(accuracy_test),4))
-    model.saveModel('Model/'+str(int(time.time()))+'/'+str(e))
+    process_speed = round(counter/(time.time()-start_time),1)
+    print('Epoch ',e,' Done, Loss: ',round(np.mean(loss),4),
+        ', Train Acc: ',round(np.mean(accuracy_train),4),
+        ', Test Acc: ',round(np.mean(accuracy_test),4),
+        ', FPS: ',process_speed)
+    model.saveModel('Model/'+task_name+'/'+str(e))
 
 _debug = np.array([2,3,3])

@@ -168,6 +168,7 @@ class Graph(object):
     def construct_model(self,config):
         self.weight = {}
         self.weight_value = {}
+        self.loss = None
 
     def initWeight(self,initializer=np.random.standard_normal):
         self.weight_value = {k:initializer(v.shape) for k,v in self.weight.items()}
@@ -182,3 +183,8 @@ class Graph(object):
         if path[-4:] != '.npz':
             path = path + '.npz'
         self.weight_value = dict(np.load(path))
+
+    def update(self,feed,lr):
+        gradient = {k:v.back(self.loss,feed) for k,v in self.weight.items()}
+        self.weight_value.update({
+            k:self.weight_value[k]-lr*gradient[k] for k in self.weight.keys()})
