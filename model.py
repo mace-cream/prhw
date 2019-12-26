@@ -1,11 +1,9 @@
 import numpy as np
-import os
 import mytf
 
-class MLP(object):
+class MLP(mytf.Graph):
     def __init__(self,config):
-        self.construct_model(config)
-        self.initWeight()
+        super().__init__(config)
 
     def construct_model(self,config):
         self.weight = {}
@@ -35,14 +33,10 @@ class MLP(object):
             for w in self.weight.values():
                 self.loss = mytf.add(self.loss, mytf.scale(mytf.reduce_mean(mytf.product(w,w)),config['lambda']))
         self.accuracy = mytf.accuracy(self.out, self.label)
-    
-    def initWeight(self,initializer=np.random.standard_normal):
-        self.weight_value = {k:initializer(v.shape) for k,v in self.weight.items()}
 
-class LeNet(object):
+class LeNet(mytf.Graph):
     def __init__(self,config):
-        self.construct_model(config)
-        self.initWeight()
+        super().__init__(config)
 
     def construct_model(self,config):
         self.weight = {}
@@ -79,17 +73,3 @@ class LeNet(object):
             for w in self.weight.values():
                 self.loss = mytf.add(self.loss, mytf.scale(mytf.reduce_mean(mytf.product(w,w)),config['lambda']))
         self.accuracy = mytf.accuracy(self.out, self.label)
-
-    def initWeight(self,initializer=np.random.standard_normal):
-        self.weight_value = {k:initializer(v.shape) for k,v in self.weight.items()}
-
-    def saveModel(self,path):
-        filepath, _ = os.path.split(path)
-        if not os.path.exists(filepath):
-            os.makedirs(filepath)
-        np.savez(path, **(self.weight_value))
-
-    def loadModel(self,path):
-        if path[-4:] != '.npz':
-            path = path + '.npz'
-        self.weight_value = dict(np.load(path))

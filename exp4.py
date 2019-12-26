@@ -1,6 +1,7 @@
 import numpy as np
-import mytf
-from utils import load_mnist, one_hot
+import time
+from utils import load_mnist
+from mytf import one_hot
 from model import MLP, LeNet
 
 # Load Data
@@ -59,8 +60,6 @@ for e in range(config['EpochNum']):
         counter = counter + config['BatchSize']
 
     print('Epoch ',e,' Done, Loss: ',round(np.mean(loss),4),', Train Acc: ',round(np.mean(accuracy_train),4),', Test Acc: ',round(np.mean(accuracy_test),4))
-
-
-
+    model.saveModel('Model/'+str(int(time.time()))+'/'+str(e))
 
 _debug = np.array([2,3,3])
